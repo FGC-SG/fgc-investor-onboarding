@@ -8,18 +8,13 @@ import clsx from 'clsx'
 const JURISDICTIONS: { value: Jurisdiction; label: string; description: string }[] = [
   {
     value: 'MAS',
-    label: 'Singapore (MAS)',
-    description: 'Regulated under the Securities and Futures Act 2001 and MAS AML/CFT Notice SFA04-N02',
-  },
-  {
-    value: 'FSA',
-    label: 'Japan (FSA)',
-    description: 'Regulated under the Financial Instruments and Exchange Act (FIEA) and Act on Prevention of Transfer of Criminal Proceeds',
+    label: 'Singapore Investor',
+    description: 'Investor based in Singapore. Regulated under the Securities and Futures Act 2001 and MAS AML/CFT Notice SFA04-N02.',
   },
   {
     value: 'BOTH',
-    label: 'Singapore & Japan',
-    description: 'Investor is subject to both MAS and Japan FSA regulatory requirements',
+    label: 'Japan Resident Investor',
+    description: 'Investor resident in Japan. Subject to both MAS (SFA 2001) and Japan FSA (FIEA) requirements, including Act on Prevention of Transfer of Criminal Proceeds.',
   },
 ]
 
