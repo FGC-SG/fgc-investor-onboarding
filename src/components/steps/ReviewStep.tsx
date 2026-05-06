@@ -92,7 +92,7 @@ export function ReviewStep() {
         <div className="flex-1">
           <p className="text-sm font-semibold text-fgc-navy">{INVESTOR_TYPE_LABELS[data.investorType]}</p>
           <p className="text-xs text-gray-500 mt-0.5">
-            Jurisdiction: {data.jurisdiction === 'BOTH' ? 'Singapore (MAS) & Japan (FSA)' : data.jurisdiction === 'MAS' ? 'Singapore (MAS)' : 'Japan (FSA)'}
+            Jurisdiction: {data.jurisdiction === 'BOTH' ? 'Japan Resident — MAS & Japan FSA' : 'Singapore — MAS'}
             {data.fundName && ` · Fund: ${data.fundName}`}
           </p>
         </div>
