@@ -4,6 +4,7 @@ import { StepLayout } from '../common/StepLayout'
 import type { StepId } from '../../types'
 import { Edit2, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
 import clsx from 'clsx'
+import { supabase } from '../../lib/supabase'
 
 function Section({ title, stepId, children }: { title: string; stepId: StepId; children: React.ReactNode }) {
   const { goToStep } = useOnboarding()
@@ -61,14 +62,33 @@ export function ReviewStep() {
 
   const handleSubmit = async () => {
     setLoading(true)
-    // Simulate submission
-    await new Promise(r => setTimeout(r, 1500))
     const refNo = `FGC-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-    updateData({
-      submittedAt: new Date().toISOString(),
-      referenceNo: refNo,
+    const submittedAt = new Date().toISOString()
+
+    // Save to Supabase
+    const { error } = await supabase.from('onboarding_submissions').insert({
+      reference_no: refNo,
+      submitted_at: submittedAt,
       status: 'submitted',
+      investor_type: data.investorType,
+      jurisdiction: data.jurisdiction,
+      fund_name: data.fundName ?? null,
+      applicant_name: isIndividual
+        ? (data.individual as any)?.fullName ?? null
+        : (data.entity as any)?.legalName ?? null,
+      applicant_email: isIndividual
+        ? (data.individual as any)?.email ?? null
+        : (data.entity as any)?.email ?? null,
+      aml_risk: data.amlRisk?.overallRisk ?? null,
+      aml_risk_code: data.amlRisk?.overallRiskCode ?? null,
+      data: data,
     })
+
+    if (error) {
+      console.error('Failed to save submission:', error.message)
+    }
+
+    updateData({ submittedAt, referenceNo: refNo, status: 'submitted' })
     setLoading(false)
     goNext()
   }
