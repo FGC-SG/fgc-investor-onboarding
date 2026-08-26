@@ -187,6 +187,40 @@ export function MASClassificationStep() {
         )}
       </div>
 
+      {/* Relevant Persons — SFA s305(5) Prospectus Exemption (Restricted Schemes) */}
+      <div className="card p-6 space-y-3 border border-fgc-navy/20 bg-fgc-navy/5">
+        <h2 className="section-title flex items-center gap-2">
+          <Info className="w-4 h-4" /> Note: Officers of the Manager / GP — SFA s305(5) "Relevant Persons"
+        </h2>
+        <p className="text-xs text-gray-600 leading-relaxed">
+          This is a separate route from the AI / Institutional Investor classification above.
+          Where a fund is offered as a <strong>restricted scheme</strong> under section 305 of the
+          Securities and Futures Act (Cap. 289) and the Sixth Schedule to the Securities and Futures
+          (Offers of Investments) (Collective Investment Schemes) Regulations 2005, the offer may also
+          be made — without needing to meet the AI asset / income thresholds — to a <strong>"relevant
+          person"</strong> as defined in s305(5), which includes:
+        </p>
+        <ul className="text-xs text-gray-600 leading-relaxed list-disc pl-5 space-y-1">
+          <li>an accredited investor;</li>
+          <li>a corporation whose sole business is holding investments and whose entire share capital is owned by one or more AI individuals;</li>
+          <li>a trustee of a trust whose sole purpose is holding investments and whose beneficiaries are all AI individuals;</li>
+          <li>
+            <strong>an officer (or equivalent person) of the entity making the offer</strong> — i.e. a
+            director, partner, or equivalent officer of the fund's GP / manager — or that officer's
+            spouse, parent, brother, sister, son or daughter; or
+          </li>
+          <li>where the offeror is an individual, that individual's spouse, parent, brother, sister, son or daughter.</li>
+        </ul>
+        <p className="text-xs text-gray-600 leading-relaxed">
+          This exemption relates to the <strong>prospectus / scheme-registration requirement</strong>
+          (i.e. who may lawfully be offered units without a registered prospectus), not to the AI /
+          Institutional Investor <em>classification</em> selected above. GP or investment-team members
+          relying on this route should still confirm eligibility with Legal/Compliance and, where the
+          fund is entered on MAS' restricted scheme list, ensure the offer is accompanied by the
+          scheme's information memorandum and any applicable CISNet notification.
+        </p>
+      </div>
+
       {/* Financial Evidence */}
       {isAI && (
         <div className="card p-6 space-y-4">
