@@ -2,6 +2,7 @@
 /* eslint-disable */
 import { useState, useRef, useCallback } from "react";
 import { useUser } from "./auth/AuthProvider";
+import { getAccessToken } from "./auth/msalConfig";
 
 const C = {
   bg: "#f8f9fa", card: "#ffffff", border: "#e5e7eb",
@@ -136,6 +137,12 @@ const T = {
   aiSend: R("送信", "Send"),
   aiLoading: R("AIが回答を生成中...", "Generating an answer..."),
   aiFailed: R("回答を取得できませんでした。", "Could not retrieve an answer."),
+  aiRefused: R("この質問には回答できませんでした。内容を変えてお試しください。", "That question could not be answered. Please try rephrasing it."),
+  aiErrAuth: R("認証の有効期限が切れています。ページを再読み込みしてください。", "Your session has expired. Please reload the page."),
+  aiErrRate: R("リクエストが多すぎます。しばらく待ってから再度お試しください。", "Too many requests. Please wait a little and try again."),
+  aiErrConfig: R("AI機能が未設定です。管理者にご連絡ください。", "The AI feature is not configured. Please contact an administrator."),
+  aiErrLong: R("質問が長すぎます。短くしてお試しください。", "That question is too long. Please shorten it."),
+  aiErrGeneric: R("エラーが発生しました。しばらく待ってから再度お試しください。", "Something went wrong. Please try again shortly."),
   noContext: R("審査未開始", "No screening started"),
 };
 const t = (k, lang) => L(T[k], lang);
@@ -497,15 +504,26 @@ function evalSG(entityType, answers) {
 }
 
 async function askAI(question, context, lang) {
-  const sysJa = `あなたはFGCの投資家適格性審査を支援するAIアシスタントです。日本の金商法（第34条の4、第63条、施行令15条の31）およびシンガポールSFA Section 4Aに精通しています。現在のコンテキスト: ${context}。日本語で簡潔かつ正確に、条文根拠付きで回答してください。`;
-  const sysEn = `You are an AI assistant supporting FGC's investor qualification screening. You are well versed in Japan's FIEA (art. 34-4, art. 63, Enforcement Order art. 15-31) and Singapore's SFA s. 4A. Current context: ${context}. Answer in English, concisely and accurately, citing the underlying provisions.`;
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  // Calls our own server proxy, which holds the Anthropic key, authenticates
+  // the caller against Entra and rate-limits per user. The browser never sees
+  // a provider credential.
+  const token = await getAccessToken();
+  if (!token) throw new Error("not_authenticated");
+
+  const res = await fetch("/api/ask-ai", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: lang === "en" ? sysEn : sysJa, messages: [{ role: "user", content: question }] }),
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ question, context, lang }),
   });
-  const d = await res.json();
-  return d.content?.map(b => b.text || "").join("") || t("aiFailed", lang);
+
+  if (!res.ok) {
+    const { error } = await res.json().catch(() => ({ error: "upstream_error" }));
+    throw new Error(error || `http_${res.status}`);
+  }
+
+  const data = await res.json();
+  if (data.refused) return t("aiRefused", lang);
+  return data.answer || t("aiFailed", lang);
 }
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -992,13 +1010,32 @@ function AIPage({ context, lang }) {
   const [q, setQ] = useState("");
   const [log, setLog] = useState([]);
   const [loading, setLoading] = useState(false);
+  // Maps the proxy's error codes to a message the user can act on.
+  function errorText(code, lang) {
+    switch (code) {
+      case "not_authenticated":
+      case "missing_token":
+      case "invalid_token":
+      case "forbidden":            return t("aiErrAuth", lang);
+      case "rate_limited":         return t("aiErrRate", lang);
+      case "server_not_configured": return t("aiErrConfig", lang);
+      case "question_too_long":    return t("aiErrLong", lang);
+      default:                     return t("aiErrGeneric", lang);
+    }
+  }
+
   async function send() {
-    if (!q.trim()) return;
+    if (!q.trim() || loading) return;
     const question = q.trim(); setQ(""); setLoading(true);
     setLog(l => [...l, { role: "user", text: question }]);
-    const ans = await askAI(question, L(context, lang), lang);
-    setLog(l => [...l, { role: "ai", text: ans }]);
-    setLoading(false);
+    try {
+      const ans = await askAI(question, L(context, lang), lang);
+      setLog(l => [...l, { role: "ai", text: ans }]);
+    } catch (e) {
+      setLog(l => [...l, { role: "ai", text: errorText(e?.message, lang), isError: true }]);
+    } finally {
+      setLoading(false);
+    }
   }
   return (
     <div style={{ padding: "16px" }}>
@@ -1010,7 +1047,7 @@ function AIPage({ context, lang }) {
         {log.length === 0 && <div style={{ fontSize: 13, color: C.faint, textAlign: "center", marginTop: 40 }}>{t("aiEmpty", lang)}<br /><span style={{ fontSize: 12 }}>{t("aiExample", lang)}</span></div>}
         {log.map((m, i) => (
           <div key={i} style={{ marginBottom: 12, display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-            <div style={{ maxWidth: "85%", padding: "8px 12px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: m.role === "user" ? "#1e293b" : "#f1f5f9", color: m.role === "user" ? "#fff" : C.text, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+            <div style={{ maxWidth: "85%", padding: "8px 12px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: m.role === "user" ? "#1e293b" : m.isError ? C.redBg : "#f1f5f9", color: m.role === "user" ? "#fff" : m.isError ? C.red : C.text, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
               {m.text}
             </div>
           </div>
