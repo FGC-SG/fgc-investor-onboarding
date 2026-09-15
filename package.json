@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:api": "esbuild api/ask-ai.ts --bundle --format=esm --platform=node --alias:@anthropic-ai/sdk=./api/__test__/anthropic-stub.mjs --outfile=.tmp/ask-ai.bundle.mjs --log-level=error && ANTHROPIC_API_KEY=test-key node api/__test__/ask-ai.test.mjs ../../.tmp/ask-ai.bundle.mjs"
+    "test:eval": "esbuild shared/eligibility.ts --bundle --format=esm --platform=node --outfile=.tmp/eligibility.bundle.mjs --log-level=error && node shared/__test__/eligibility.test.mjs ../../.tmp/eligibility.bundle.mjs",
+    "test:eval:update": "esbuild shared/eligibility.ts --bundle --format=esm --platform=node --outfile=.tmp/eligibility.bundle.mjs --log-level=error && node shared/__test__/eligibility.test.mjs ../../.tmp/eligibility.bundle.mjs --update",
+    "test": "npm run test:eval"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.125.0",
     "@azure/msal-browser": "^5.19.0",
     "@azure/msal-react": "^5.6.0",
     "@hookform/resolvers": "^3.6.0",
@@ -24,7 +25,6 @@
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vercel/node": "^13.0.1",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",

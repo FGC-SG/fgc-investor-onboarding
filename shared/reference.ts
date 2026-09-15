@@ -1,8 +1,8 @@
 // Authoritative reference content for the qualification criteria.
 //
-// Imported by BOTH the client (the Criteria tab) and the server (api/ask-ai.ts,
-// which grounds the assistant in it). Deliberately a single module: two copies
-// of legal thresholds would drift, and a drifted copy is worse than none.
+// Rendered by the Criteria tab. Kept as its own module rather than inline in a
+// component: one copy of the legal thresholds, so they cannot drift apart, and
+// a drifted copy of a compliance threshold is worse than no copy.
 //
 // Statutory citations are reproduced verbatim in both languages; the EN variant
 // only appends a gloss. Do not paraphrase a citation.
