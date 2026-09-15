@@ -23,6 +23,17 @@ const MAX_QUESTION_CHARS = 4000;
 const MAX_CONTEXT_CHARS = 2000;
 const MAX_TOKENS = 4000;
 
+// Model is env-configurable so cost can be tuned without a code change.
+// claude-opus-5   — strongest reasoning, best for statutory interpretation ($5/$25 per MTok)
+// claude-sonnet-5 — mid tier ($2/$10)
+// claude-haiku-4-5 — cheapest ($1/$5)
+// Allowlisted rather than free-form: an arbitrary env value would fail at
+// request time, and a typo should not silently downgrade legal advice.
+const ALLOWED_MODELS = ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"];
+const MODEL = ALLOWED_MODELS.includes(process.env.AI_MODEL || "")
+  ? (process.env.AI_MODEL as string)
+  : "claude-opus-5";
+
 // Sliding-window rate limit, per authenticated user.
 // NOTE: this lives in the function instance's memory. Vercel may run several
 // instances concurrently, so the effective ceiling is (limit × live instances).
@@ -114,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const client = new Anthropic({ apiKey });
     const message = await client.messages.create({
-      model: "claude-opus-5",
+      model: MODEL,
       max_tokens: MAX_TOKENS,
       system: systemPrompt(context.slice(0, MAX_CONTEXT_CHARS), lang),
       messages: [{ role: "user", content: question }],

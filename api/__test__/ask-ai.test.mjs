@@ -59,7 +59,7 @@ console.log(`  ${limited !== null ? "PASS" : "FAIL"}  rate limiter engages`);
 console.log("\n=== server-side pinning (client cannot override) ===");
 const req = globalThis.__lastAnthropicRequest;
 const pinned = [
-  ["model is claude-opus-5", req?.model === "claude-opus-5"],
+  ["model defaults to claude-opus-5", req?.model === "claude-opus-5"],
   ["max_tokens capped at 4000", req?.max_tokens === 4000],
   ["system prompt set server-side", typeof req?.system === "string" && req.system.length > 0],
 ];
