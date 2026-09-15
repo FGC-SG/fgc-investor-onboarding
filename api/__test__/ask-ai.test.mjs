@@ -14,6 +14,7 @@ globalThis.fetch = async (url, opts) => {
   if (tok === "bad") return { ok: false, status: 401 };
   if (tok === "outsider") return { ok: true, json: async () => ({ id: "u9", mail: "someone@gmail.com" }) };
   if (tok === "boom") throw new Error("network down");
+  if (tok === "cap") return { ok: true, json: async () => ({ id: "ucap", mail: "capture@fgcsg.com" }) };
   return { ok: true, json: async () => ({ id: "u1", mail: "onuma@fgcsg.com" }) };
 };
 
@@ -58,12 +59,49 @@ console.log(`  ${limited !== null ? "PASS" : "FAIL"}  rate limiter engages`);
 
 console.log("\n=== server-side pinning (client cannot override) ===");
 const req = globalThis.__lastAnthropicRequest;
+// Capture the request built for each language.
+async function captureFor(lang) {
+  globalThis.__lastAnthropicRequest = null;
+  const res = mockRes();
+  await handler({ method: "POST", headers: { authorization: "Bearer cap" }, body: { question: "q", context: "ctx", lang } }, res);
+  return globalThis.__lastAnthropicRequest;
+}
+const reqEn = await captureFor("en");
+const reqJa = await captureFor("ja");
+
+function parts(r) {
+  const sys = Array.isArray(r?.system) ? r.system : [];
+  return { sys, stable: sys[0]?.text || "", volatile: sys[1]?.text || "" };
+}
+const en = parts(reqEn), ja = parts(reqJa);
 const pinned = [
-  ["model defaults to claude-opus-5", req?.model === "claude-opus-5"],
-  ["max_tokens capped at 4000", req?.max_tokens === 4000],
-  ["system prompt set server-side", typeof req?.system === "string" && req.system.length > 0],
+  ["model defaults to claude-opus-5", reqEn?.model === "claude-opus-5"],
+  ["max_tokens capped at 4000", reqEn?.max_tokens === 4000],
+  ["system prompt set server-side", en.sys.length === 2 && en.stable.length > 0],
 ];
 for (const [name, ok] of pinned) { ok ? pass++ : fail++; console.log(`  ${ok ? "PASS" : "FAIL"}  ${name}`); }
+
+console.log("\n=== scope limiting & grounding ===");
+const scoped = [
+  ["EN scope restriction present", /strictly limited to/.test(en.stable)],
+  ["EN refuses out-of-scope topics", /do not answer it/i.test(en.stable)],
+  ["EN resists scope-override injection", /ignore, expand or override this scope/.test(en.stable)],
+  ["JA scope restriction present", en.stable !== ja.stable && /厳密に限定/.test(ja.stable)],
+  ["JA refuses out-of-scope topics", /回答しないでください/.test(ja.stable)],
+  ["JA resists scope-override injection", /無視・拡大・上書き/.test(ja.stable)],
+  ["grounded in app reference content (EN)", /# Japan — FIEA/.test(en.stable) && /# Singapore — SFA/.test(en.stable)],
+  ["grounded in app reference content (JA)", /# 日本 — 金商法/.test(ja.stable)],
+  ["JP citations carried verbatim in BOTH languages",
+    en.stable.includes("金商法2条3項14号・府令10条") && ja.stable.includes("金商法2条3項14号・府令10条")],
+  ["SG thresholds carried (EN)", /SGD 2 million/.test(en.stable) && /SGD 10 million/.test(en.stable)],
+  ["SG thresholds carried (JA)", /SGD 200万超/.test(ja.stable) && /SGD 1,000万超/.test(ja.stable)],
+  ["says information, not legal advice", /not legal advice/i.test(en.stable) && /法的助言ではありません/.test(ja.stable)],
+  ["reference sits in the CACHED block", en.stable.length > 2000 && en.sys[0]?.cache_control?.type === "ephemeral"],
+  ["volatile context AFTER the cache breakpoint (EN)", /screening context/i.test(en.volatile) && !/screening context/i.test(en.stable)],
+  ["volatile context AFTER the cache breakpoint (JA)", /審査コンテキスト/.test(ja.volatile)],
+  ["no cache_control on the volatile block", !en.sys[1]?.cache_control],
+];
+for (const [name, ok] of scoped) { ok ? pass++ : fail++; console.log(`  ${ok ? "PASS" : "FAIL"}  ${name}`); }
 
 console.log(`\n${fail === 0 ? "ALL PASS" : "FAILURES"}  —  ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
