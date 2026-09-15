@@ -17,3 +17,21 @@ export const loginRequest = {
 };
 
 export const msalInstance = new PublicClientApplication(msalConfig);
+
+/**
+ * Acquire a fresh access token for the signed-in account.
+ *
+ * Used to authenticate calls to our own /api routes. Tokens are short-lived, so
+ * this is called per request rather than cached; MSAL serves from its own cache
+ * and refreshes only when needed.
+ */
+export async function getAccessToken(): Promise<string | null> {
+  const account = msalInstance.getAllAccounts()[0];
+  if (!account) return null;
+  try {
+    const res = await msalInstance.acquireTokenSilent({ ...loginRequest, account });
+    return res.accessToken;
+  } catch {
+    return null;
+  }
+}
