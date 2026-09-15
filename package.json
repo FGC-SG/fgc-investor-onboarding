@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:api": "esbuild api/ask-ai.ts --bundle --format=esm --platform=node --alias:@anthropic-ai/sdk=./api/__test__/anthropic-stub.mjs --outfile=.tmp/ask-ai.bundle.mjs --log-level=error && ANTHROPIC_API_KEY=test-key node api/__test__/ask-ai.test.mjs ../../.tmp/ask-ai.bundle.mjs"
+    "test:api": "esbuild api/ask-ai.ts --bundle --format=esm --platform=node --alias:@anthropic-ai/sdk=./api/__test__/anthropic-stub.mjs --outfile=.tmp/ask-ai.bundle.mjs --log-level=error && ANTHROPIC_API_KEY=test-key node api/__test__/ask-ai.test.mjs ../../.tmp/ask-ai.bundle.mjs",
+    "test:eval": "esbuild shared/eligibility.ts --bundle --format=esm --platform=node --outfile=.tmp/eligibility.bundle.mjs --log-level=error && node shared/__test__/eligibility.test.mjs ../../.tmp/eligibility.bundle.mjs",
+    "test:eval:update": "esbuild shared/eligibility.ts --bundle --format=esm --platform=node --outfile=.tmp/eligibility.bundle.mjs --log-level=error && node shared/__test__/eligibility.test.mjs ../../.tmp/eligibility.bundle.mjs --update",
+    "test": "npm run test:eval && npm run test:api"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

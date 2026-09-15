@@ -44,3 +44,4 @@ Thumbs.db
 
 # Test build output
 .tmp/
+.env*
